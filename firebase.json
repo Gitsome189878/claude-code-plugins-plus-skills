@@ -25,6 +25,18 @@
       ]
     },
     {
+      "target": "tonsofskills-redirect",
+      "public": "redirects/skills",
+      "ignore": ["firebase.json", "**/.*"],
+      "redirects": [
+        {
+          "source": "**",
+          "destination": "https://claudecodeplugins.io?utm_source=tonsofskills.com&utm_medium=redirect",
+          "type": 301
+        }
+      ]
+    },
+    {
       "target": "marketplace",
       "public": "marketplace/dist",
       "ignore": [
