@@ -201,15 +201,15 @@ const pageDescription = `Search all ${searchIndex.stats.totalPlugins} plugins an
       padding: 1.75rem;
       background: var(--surface-2);
       border-radius: 12px;
-      border: 1px solid var(--border);
+      border: none;
+      box-shadow: 0 2px 8px oklch(0% 0 0 / 0.12), 0 1px 3px oklch(0% 0 0 / 0.08);
       transition: all 0.3s var(--transition-smooth);
       position: relative;
     }
 
     .result-card:hover {
-      border-color: var(--primary-border);
       transform: translateY(-3px);
-      box-shadow: 0 8px 24px oklch(0% 0 0 / 0.25);
+      box-shadow: 0 12px 32px oklch(0% 0 0 / 0.2), 0 4px 12px oklch(0% 0 0 / 0.1);
     }
 
     .result-card-link {
@@ -308,24 +308,6 @@ const pageDescription = `Search all ${searchIndex.stats.totalPlugins} plugins an
     .card-badge.has-skills {
       background: rgba(234, 170, 0, 0.15);
       color: var(--gold);
-    }
-
-    .card-badge.verification-gold {
-      background: linear-gradient(135deg, #fbbf24 0%, #d4a017 100%);
-      color: #78350f;
-      text-decoration: none;
-    }
-
-    .card-badge.verification-silver {
-      background: linear-gradient(135deg, #cbd5e1 0%, #8e9aaf 100%);
-      color: #1e293b;
-      text-decoration: none;
-    }
-
-    .card-badge.verification-bronze {
-      background: linear-gradient(135deg, #d4a574 0%, #cd7f32 100%);
-      color: #451a03;
-      text-decoration: none;
     }
 
     /* Bookmark button */
@@ -728,7 +710,6 @@ const pageDescription = `Search all ${searchIndex.stats.totalPlugins} plugins an
         <option value="a-z">Sort: A → Z</option>
         <option value="z-a">Sort: Z → A</option>
         <option value="category">Sort: Category</option>
-        <option value="score">Sort: Verification Score</option>
       </select>
 
       <span id="results-info" class="results-info">
@@ -746,7 +727,7 @@ const pageDescription = `Search all ${searchIndex.stats.totalPlugins} plugins an
     <div id="results-grid" class="results-grid">
       {searchIndex.items.map(item => (
         <div
-          class={`result-card ${item.verificationBadge ? 'has-verification' : ''}`}
+          class="result-card"
           data-type={item.type}
           data-category={item.category}
           data-tools={item.type === 'skill' ? JSON.stringify(item.allowedTools) : '[]'}
@@ -756,8 +737,6 @@ const pageDescription = `Search all ${searchIndex.stats.totalPlugins} plugins an
           data-featured={item.isFeatured || false}
           data-new={item.isNew || false}
           data-skill-count={item.skillCount || 0}
-          data-verification-badge={item.verificationBadge || ''}
-          data-verification-score={item.verificationScore || 0}
           data-author-type={item.authorType || 'official'}
         >
           <button
@@ -786,11 +765,6 @@ const pageDescription = `Search all ${searchIndex.stats.totalPlugins} plugins an
               )}
               <div class="result-meta-row">
                 <span class="result-category">{item.category.replace(/-/g, ' ')}</span>
-                {item.verificationBadge && (
-                  <span class={`card-badge verification-${item.verificationBadge}`} title={`Verified ${item.verificationBadge.charAt(0).toUpperCase() + item.verificationBadge.slice(1)} — ${item.verificationScore}/100`}>
-                    {item.verificationBadge === 'gold' ? '🥇' : item.verificationBadge === 'silver' ? '🥈' : '🥉'} {item.verificationScore}
-                  </span>
-                )}
                 {item.skillCount > 0 && <span class="card-badge has-skills">{item.skillCount} skills</span>}
               </div>
             </div>
@@ -921,8 +895,6 @@ const pageDescription = `Search all ${searchIndex.stats.totalPlugins} plugins an
             case 'category':
               const catCompare = a.category.localeCompare(b.category);
               return catCompare !== 0 ? catCompare : nameA.localeCompare(nameB);
-            case 'score':
-              return (b.verificationScore || 0) - (a.verificationScore || 0);
             default:
               return 0; // relevance - keep Fuse.js order
           }
@@ -1109,7 +1081,7 @@ const pageDescription = `Search all ${searchIndex.stats.totalPlugins} plugins an
         document.getElementById('keyword-filter').value = keywordParam;
       }
 
-      if (sortParam && ['relevance', 'a-z', 'z-a', 'category', 'score'].includes(sortParam)) {
+      if (sortParam && ['relevance', 'a-z', 'z-a', 'category'].includes(sortParam)) {
         activeFilters.sort = sortParam;
         document.getElementById('sort-filter').value = sortParam;
       }
