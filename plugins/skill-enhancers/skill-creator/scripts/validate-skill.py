@@ -3,13 +3,13 @@
 Skill Validator v5.0 - Two-Tier Validation + 100-Point Grading
 
 Validates SKILL.md files against:
-  - Standard tier: AgentSkills.io minimum (name + description required)
-  - Enterprise tier (DEFAULT): Standard + identity fields, scoped tools, sections, disclosure
+  - Standard tier (DEFAULT): AgentSkills.io minimum (name defaults to dir name, description recommended)
+  - Enterprise tier: Standard + identity fields, scoped tools, sections, disclosure
   - 100-Point grading: Intent Solutions marketplace rubric (--grade flag)
 
 Usage:
-    python validate-skill.py path/to/SKILL.md              # Enterprise (default)
-    python validate-skill.py --standard path/to/SKILL.md    # Standard only
+    python validate-skill.py path/to/SKILL.md              # Standard (default)
+    python validate-skill.py --enterprise path/to/SKILL.md  # Enterprise tier
     python validate-skill.py --grade path/to/SKILL.md       # 100-point grading
     python validate-skill.py --grade --json path/to/SKILL.md # JSON grade output
     python validate-skill.py --json path/to/SKILL.md        # JSON output
@@ -85,11 +85,14 @@ def parse_frontmatter(content: str) -> Tuple[dict, str]:
     return data, body
 
 
-def validate_name(fm: dict, path: Path) -> Tuple[List[str], List[str]]:
+def validate_name(fm: dict, path: Path, enterprise: bool = False) -> Tuple[List[str], List[str]]:
     """Validate the name field."""
     errors, warnings = [], []
     if "name" not in fm:
-        errors.append("Missing required field: 'name'")
+        if enterprise:
+            errors.append("Missing required field: 'name'")
+        else:
+            warnings.append(f"INFO: 'name' not set - defaults to directory name '{path.parent.name}'")
         return errors, warnings
 
     name = str(fm["name"]).strip()
@@ -114,11 +117,14 @@ def validate_name(fm: dict, path: Path) -> Tuple[List[str], List[str]]:
     return errors, warnings
 
 
-def validate_description(fm: dict) -> Tuple[List[str], List[str]]:
+def validate_description(fm: dict, enterprise: bool = False) -> Tuple[List[str], List[str]]:
     """Validate the description field."""
     errors, warnings = [], []
     if "description" not in fm:
-        errors.append("Missing required field: 'description'")
+        if enterprise:
+            errors.append("Missing required field: 'description'")
+        else:
+            warnings.append("'description' is recommended for discovery - add trigger phrases and use-cases")
         return errors, warnings
 
     desc = str(fm["description"]).strip()
@@ -134,9 +140,15 @@ def validate_description(fm: dict) -> Tuple[List[str], List[str]]:
         warnings.append(f"'description' is long ({len(desc)} chars) - impacts token budget")
 
     if RE_FIRST_PERSON.search(desc):
-        errors.append("'description' must not use first person (I can, I will, I'm, I help)")
+        if enterprise:
+            errors.append("'description' must not use first person (I can, I will, I'm, I help)")
+        else:
+            warnings.append("'description' should not use first person (I can, I will, I'm, I help)")
     if RE_SECOND_PERSON.search(desc):
-        errors.append("'description' must not use second person (You can, You should, You will)")
+        if enterprise:
+            errors.append("'description' must not use second person (You can, You should, You will)")
+        else:
+            warnings.append("'description' should not use second person (You can, You should, You will)")
 
     return errors, warnings
 
@@ -874,7 +886,7 @@ def grade_skill(path: Path, body: str, fm: dict) -> dict:
     }
 
 
-def validate_skill(path: Path, enterprise: bool = True) -> Dict[str, Any]:
+def validate_skill(path: Path, enterprise: bool = False) -> Dict[str, Any]:
     """Validate a SKILL.md file."""
     try:
         content = path.read_text(encoding="utf-8")
@@ -890,11 +902,11 @@ def validate_skill(path: Path, enterprise: bool = True) -> Dict[str, Any]:
     warnings: List[str] = []
     info: List[str] = []
 
-    name_e, name_w = validate_name(fm, path)
+    name_e, name_w = validate_name(fm, path, enterprise)
     errors.extend(name_e)
     warnings.extend(name_w)
 
-    desc_e, desc_w = validate_description(fm)
+    desc_e, desc_w = validate_description(fm, enterprise)
     errors.extend(desc_e)
     warnings.extend(desc_w)
 
@@ -1024,13 +1036,18 @@ def print_grade(grade_result: Dict[str, Any], path: Path) -> None:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Validate SKILL.md files (Enterprise tier by default)"
+        description="Validate SKILL.md files (Standard tier by default)"
     )
     parser.add_argument("path", help="Path to SKILL.md file")
     parser.add_argument(
         "--standard",
         action="store_true",
-        help="Use Standard tier (AgentSkills.io minimum) instead of Enterprise",
+        help="Use Standard tier - AgentSkills.io minimum (default, kept for compatibility)",
+    )
+    parser.add_argument(
+        "--enterprise",
+        action="store_true",
+        help="Use Enterprise tier: Standard + identity fields, scoped tools, sections, disclosure",
     )
     parser.add_argument("--grade", action="store_true", help="Run 100-point grading rubric")
     parser.add_argument("--json", action="store_true", help="JSON output")
@@ -1041,7 +1058,7 @@ def main():
         print(f"Error: {path} not found", file=sys.stderr)
         sys.exit(1)
 
-    enterprise = not args.standard
+    enterprise = args.enterprise and not args.standard
 
     if args.grade:
         try:

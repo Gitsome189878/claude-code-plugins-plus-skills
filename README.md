@@ -1,9 +1,9 @@
 # Claude Code Skills & Plugins Hub
 
-[![Version](https://img.shields.io/badge/version-4.17.0-brightgreen)](000-docs/247-OD-CHNG-changelog.md)
+[![Version](https://img.shields.io/badge/version-4.19.0-brightgreen)](000-docs/247-OD-CHNG-changelog.md)
 [![CLI](https://img.shields.io/badge/CLI-ccpi-blueviolet?logo=npm)](https://www.npmjs.com/package/@intentsolutionsio/ccpi)
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-1900%2B-orange)](000-docs/247-OD-CHNG-changelog.md)
-[![Plugins](https://img.shields.io/badge/Total%20Plugins-347-blue)](https://github.com/jeremylongshore/claude-code-plugins-plus-skills)
+[![Plugins](https://img.shields.io/badge/Total%20Plugins-346-blue)](https://github.com/jeremylongshore/claude-code-plugins-plus-skills)
 [![2026 Schema](https://img.shields.io/badge/2026%20Schema-Compliant-success?logo=checkmarx)](tutorials/skills/05-skill-validation.ipynb)
 [![Tool Permissions](https://img.shields.io/badge/Tool%20Permissions-Secured-blueviolet?logo=shield)](tutorials/skills/02-skill-anatomy.ipynb)
 [![Interactive Tutorials](https://img.shields.io/badge/Tutorials-11%20Notebooks-yellow?logo=jupyter)](000-docs/185-MS-INDX-tutorials.md)
@@ -14,7 +14,7 @@
 [![Buy me a monster](https://img.shields.io/badge/Buy%20me%20a-Monster-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/jeremylongshore)
 [![$5/month Sponsor](https://img.shields.io/badge/%245%2Fmonth-Sponsor-EA4AAA?style=for-the-badge&logo=github-sponsors&logoColor=white)](https://github.com/sponsors/jeremylongshore)
 
-**The largest open-source marketplace for Claude Code plugins and agent skills.** 347 plugins, 1,900+ skills, 69 community contributions — validated, graded, and ready to install.
+**The largest open-source marketplace for Claude Code plugins and agent skills.** 346 plugins, 1,900+ skills, 16 community contributors — validated, graded, and ready to install.
 
 ```bash
 pnpm add -g @intentsolutionsio/ccpi    # Install the CLI
@@ -28,7 +28,9 @@ Or use Claude's built-in command:
 
 **[Browse the marketplace](https://tonsofskills.com)** | **[Explore plugins](https://tonsofskills.com/explore)** | **[Download bundles](https://tonsofskills.com/cowork)**
 
-> **Killer Skill of the Week** — Every week we scour GitHub for the most impressive Claude Code skills and spotlight one that's popping. Sign up at [tonsofskills.com](https://tonsofskills.com) and we'll email you the pick — no searching required.
+> **Killer Skill of the Week** — [executive-assistant-skills](https://tonsofskills.com/plugins/executive-assistant-skills): *"The AI skills that fully replaced a $4k/mo executive assistant"* by Martin Gontovnikas. Research meetings, draft emails, manage Todoist action items — the complete EA workflow. Grade: A.
+>
+> Previous picks: [skill-creator](https://tonsofskills.com/plugins/skill-creator), [cursor-pack](https://tonsofskills.com/plugins/cursor-pack), [crypto-portfolio-tracker](https://tonsofskills.com/plugins/crypto-portfolio-tracker). See all at [tonsofskills.com](https://tonsofskills.com).
 
 ---
 
@@ -36,8 +38,9 @@ Or use Claude's built-in command:
 
 Anthropic shipped several features since plugins launched in October 2025 that change how developers extend Claude Code:
 
-- **Agent Skills (`SKILL.md`)** replaced static plugins as the primary extension point. Skills auto-activate based on conversation context — no slash commands needed. This repo now contains 1,900+ validated skills across 22 categories.
-- **`${CLAUDE_SKILL_DIR}`** is the official path variable for referencing files within a skill directory. It replaced the deprecated `{baseDir}` syntax. All 1,900+ skills in this repo use the current variable.
+- **Agent Skills (`SKILL.md`)** replaced static plugins as the primary extension point. Skills auto-activate based on conversation context — no slash commands needed. This repo now contains 1,916 validated skills across 22 categories.
+- **`${CLAUDE_SKILL_DIR}`** is the official path variable for referencing files within a skill directory. It replaced the deprecated `{baseDir}` syntax. All 1,916 skills in this repo use the current variable.
+- **Two-tier validation**: Standard tier (default) follows the Anthropic spec with no required fields. Enterprise tier (`--enterprise`) applies the Intent Solutions 100-point grading rubric. CI auto-selects enterprise.
 - **Progressive Disclosure Architecture (PDA)** keeps skill files concise (target: 150 lines) and offloads detailed references to a `references/` subdirectory. Our 100-point grading rubric enforces this.
 - **Tool permissions** (`allowed-tools` frontmatter) give each skill fine-grained access control. Scoped patterns like `Bash(git:*)` limit what system commands a skill can run.
 - **New frontmatter fields**: `context: fork` (run in subagent), `agent` (subagent type), `user-invocable` (hide from slash menu), `argument-hint` (autocomplete), `hooks` (lifecycle events), and `compatibility` (AgentSkills.io standard for environment requirements).
@@ -117,11 +120,12 @@ Generates idempotent Ansible playbooks following infrastructure-as-code best pra
 
 | Metric | Count |
 |--------|-------|
-| Total skills | 1,900+ |
+| Total skills | 1,916 |
+| Plugins (marketplace) | 346 |
 | Plugin categories | 22 |
-| Community contributions | 69 plugins |
-| Average skill grade | B (87/100) |
-| Production ready (A+B) | 80%+ |
+| Contributors | 16 |
+| Average skill grade | B (89.9/100) |
+| Production ready (A+B) | 88.9% |
 
 ---
 
@@ -154,9 +158,10 @@ Grades: **A** (90-100), **B** (80-89), **C** (70-79), **D** (60-69), **F** (<60)
 
 Run the validator yourself:
 ```bash
-python3 scripts/validate-skills-schema.py --skills-only          # Grade all skills
-python3 scripts/validate-skills-schema.py --verbose --skills-only # Detailed breakdowns
-python3 scripts/validate-skills-schema.py --show-low-grades       # Find D+F skills
+python3 scripts/validate-skills-schema.py --skills-only              # Standard tier (default, no required fields)
+python3 scripts/validate-skills-schema.py --enterprise --skills-only  # Enterprise tier (marketplace rubric)
+python3 scripts/validate-skills-schema.py --verbose --skills-only     # Detailed breakdowns
+python3 scripts/validate-skills-schema.py --show-low-grades           # Find D+F skills
 ```
 
 ---
@@ -186,7 +191,7 @@ All templates live in [`templates/`](templates/).
 
 ```yaml
 ---
-# Required
+# Recommended (all fields optional per Anthropic spec)
 name: my-skill-name                     # kebab-case, matches folder name
 description: |                          # Include "Use when..." and "Trigger with..."
   Describe what this skill does. Use when building X.

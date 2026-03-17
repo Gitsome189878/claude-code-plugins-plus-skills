@@ -1,36 +1,40 @@
 #!/usr/bin/env python3
 """
-Claude Code Plugin Validator v3.0 (Intent Solutions Standard)
+Claude Code Plugin Validator v4.0 (Two-Tier: Standard + Enterprise)
 
 Unified validator for all Claude Code plugin content:
 - SKILL.md files (Agent Skills)
 - commands/*.md files (Slash Commands)
 - agents/*.md files (Custom Agents)
 
+Two-tier validation system:
+- Standard (DEFAULT): Anthropic spec only. No required fields. description recommended.
+  Body has no required format. "Use when"/"Trigger with" are INFO only.
+- Enterprise: Intent Solutions marketplace. 100-point rubric. version/author/license/
+  allowed-tools scored as WARNINGS (not errors). Body sections scored as WARNINGS.
+- Auto-detect: if CI=true or GITHUB_ACTIONS=true → enterprise by default.
+
 Combines:
-- Anthropic 2025 Skills Specification (code.claude.com/docs/en/skills)
+- Anthropic 2026 Skills Specification (code.claude.com/docs/en/skills)
 - Lee Han Chung Deep Dive (leehanchung.github.io)
 - Intent Solutions 100-Point Grading Rubric
 
-Features:
-- Full validation with errors/warnings
-- Built-in 100-point letter grading (A-F) for skills
-- Progressive Disclosure Architecture (PDA) scoring
-- Automatic grade report generation
-
 Usage:
-    python scripts/validate-skills-schema.py [--verbose|-v] [--fail-on-warn]
+    python scripts/validate-skills-schema.py [--verbose|-v]              # Standard tier (default)
+    python scripts/validate-skills-schema.py --enterprise [--verbose]    # Enterprise tier
+    python scripts/validate-skills-schema.py --standard [--verbose]      # Explicit standard
     python scripts/validate-skills-schema.py --skills-only
     python scripts/validate-skills-schema.py --commands-only
     python scripts/validate-skills-schema.py --agents-only
-    python scripts/validate-skills-schema.py path/to/SKILL.md    # Single-file mode
+    python scripts/validate-skills-schema.py path/to/SKILL.md           # Single-file mode
 
 Author: Jeremy Longshore <jeremy@intentsolutions.io>
-Version: 3.0.0
+Version: 4.0.0
 """
 
 import argparse
 import json as json_module
+import os
 import re
 import sys
 from pathlib import Path
@@ -45,25 +49,33 @@ except ImportError:
 
 # === CONSTANTS ===
 
-# Valid tools per Claude Code spec (2025)
+# Validation tiers
+TIER_STANDARD = 'standard'
+TIER_ENTERPRISE = 'enterprise'
+
+# Valid tools per Claude Code spec (2026)
 VALID_TOOLS = {
     'Read', 'Write', 'Edit', 'Bash', 'Glob', 'Grep',
     'WebFetch', 'WebSearch', 'Task', 'TodoWrite',
     'NotebookEdit', 'AskUserQuestion', 'Skill'
 }
 
-# Anthropic required fields (minimum spec)
-ANTHROPIC_REQUIRED = {'name', 'description'}
+# Two-tier field definitions (Anthropic spec alignment)
+# Standard tier: NO required fields per Anthropic spec (all are optional)
+STANDARD_REQUIRED = set()
+STANDARD_RECOMMENDED = {'description'}
 
-# Enterprise required fields (Intent Solutions marketplace)
-# Note: author, version, license can be top-level OR under metadata: per AgentSkills.io spec
-ENTERPRISE_REQUIRED = {'allowed-tools', 'version', 'author', 'license'}
+# Enterprise tier: scored fields (warnings, not errors)
+ENTERPRISE_RECOMMENDED = {'name', 'description', 'allowed-tools', 'version', 'author', 'license'}
 
-# All required fields (Anthropic + Enterprise)
-REQUIRED_FIELDS = ANTHROPIC_REQUIRED | ENTERPRISE_REQUIRED
+# Legacy aliases for backward compat in grading functions
+ANTHROPIC_REQUIRED = set()  # Nothing required per spec
+ENTERPRISE_REQUIRED = set()  # Now warnings, not requirements
+REQUIRED_FIELDS = set()  # Empty — nothing is a hard requirement
 
 # Optional fields per Anthropic spec + AgentSkills.io
 OPTIONAL_FIELDS = {
+    'name', 'description', 'allowed-tools', 'version', 'author', 'license',
     'model', 'disable-model-invocation', 'mode', 'tags', 'metadata', 'compatible-with',
     'argument-hint', 'context', 'agent', 'user-invocable', 'hooks', 'compatibility',
 }
@@ -71,8 +83,8 @@ OPTIONAL_FIELDS = {
 # Deprecated fields (warn but don't error)
 DEPRECATED_FIELDS = {'when_to_use'}
 
-# Nixtla required sections (strict quality mode)
-REQUIRED_SECTIONS = [
+# Enterprise recommended sections (not required in standard tier)
+ENTERPRISE_SECTIONS = [
     "# ",  # title line
     "## Overview",
     "## Prerequisites",
@@ -82,6 +94,9 @@ REQUIRED_SECTIONS = [
     "## Examples",
     "## Resources",
 ]
+
+# Backward compat alias
+REQUIRED_SECTIONS = ENTERPRISE_SECTIONS
 
 # Regex patterns
 RE_FRONTMATTER = re.compile(r"^---\s*\n(.*?)\n---\s*\n(.*)$", re.DOTALL)
@@ -809,6 +824,16 @@ def find_skill_files(root: Path) -> List[Path]:
                     continue
                 results.append(p)
 
+    # Nixtla-compatible: search in 003-skills directory
+    nixtla_skills = root / "003-skills"
+    if nixtla_skills.exists():
+        for p in nixtla_skills.rglob("*/SKILL.md"):
+            if p.is_file():
+                parts = p.relative_to(root).parts
+                if any(part in excluded_dirs for part in parts):
+                    continue
+                results.append(p)
+
     return results
 
 
@@ -866,26 +891,31 @@ def estimate_word_count(content: str) -> int:
 
 # === VALIDATION FUNCTIONS ===
 
-def validate_frontmatter(path: Path, fm: dict) -> Tuple[List[str], List[str]]:
+def validate_frontmatter(path: Path, fm: dict, tier: str = TIER_STANDARD) -> Tuple[List[str], List[str], List[str]]:
     """
     Validate SKILL.md frontmatter.
-    Returns: (errors, warnings)
+    Returns: (errors, warnings, infos)
     """
     errors: List[str] = []
     warnings: List[str] = []
+    infos: List[str] = []
 
-    # === REQUIRED FIELDS (Anthropic + Enterprise) ===
-    # Per AgentSkills.io spec, author/version/license can live under metadata:
-    # Accept both top-level and metadata.{field} locations
+    # === FIELD PRESENCE CHECKS (tier-aware) ===
+    # Standard tier: no required fields per Anthropic spec. description is recommended (WARNING).
+    # Enterprise tier: enterprise fields scored as WARNINGS (not errors).
 
     metadata = fm.get('metadata', {}) if isinstance(fm.get('metadata'), dict) else {}
 
-    for key in REQUIRED_FIELDS:
-        if key not in fm:
-            # Check metadata fallback for author, version, license
-            if key in ('author', 'version', 'license') and key in metadata:
-                continue  # Found in metadata block — valid per spec
-            errors.append(f"[frontmatter] Missing required field: '{key}'")
+    if tier == TIER_ENTERPRISE:
+        for key in ENTERPRISE_RECOMMENDED:
+            if key not in fm:
+                if key in ('author', 'version', 'license') and key in metadata:
+                    continue  # Found in metadata block — valid per spec
+                warnings.append(f"[frontmatter] Missing recommended field: '{key}' (enterprise)")
+    else:
+        # Standard tier: only description is recommended
+        if 'description' not in fm:
+            warnings.append("[frontmatter] Missing recommended field: 'description' (recommended by Anthropic spec)")
 
     # === FIELD-SPECIFIC VALIDATION ===
 
@@ -926,19 +956,31 @@ def validate_frontmatter(path: Path, fm: dict) -> Tuple[List[str], List[str]]:
             if len(desc) > 1024:
                 errors.append("[frontmatter] 'description' exceeds 1024 characters")
 
-            # Nixtla quality checks
+            # Discoverability checks (tier-aware)
             if not RE_DESCRIPTION_USE_WHEN.search(desc):
-                errors.append("[frontmatter] 'description' must include 'Use when ...' phrase for model discoverability")
+                if tier == TIER_ENTERPRISE:
+                    warnings.append("[frontmatter] 'description' should include 'Use when ...' phrase for model discoverability (enterprise)")
+                else:
+                    infos.append("[frontmatter] Consider adding 'Use when ...' phrase to description for better discoverability")
 
             if not RE_DESCRIPTION_TRIGGER_WITH.search(desc):
-                errors.append("[frontmatter] 'description' must include 'Trigger with ...' phrase for user discoverability")
+                if tier == TIER_ENTERPRISE:
+                    warnings.append("[frontmatter] 'description' should include 'Trigger with ...' phrase for user discoverability (enterprise)")
+                else:
+                    infos.append("[frontmatter] Consider adding 'Trigger with ...' phrase to description")
 
-            # Voice checks (nixtla strict mode)
+            # Voice checks (tier-aware)
             if RE_FIRST_PERSON.search(desc):
-                errors.append("[frontmatter] 'description' must NOT use first person (I can / I will / etc.) - use third person")
+                if tier == TIER_ENTERPRISE:
+                    warnings.append("[frontmatter] 'description' should NOT use first person (I can / I will / etc.) - use third person")
+                else:
+                    warnings.append("[frontmatter] 'description' uses first person - third person recommended")
 
             if RE_SECOND_PERSON.search(desc):
-                errors.append("[frontmatter] 'description' must NOT use second person (You can / You should) - use third person")
+                if tier == TIER_ENTERPRISE:
+                    warnings.append("[frontmatter] 'description' should NOT use second person (You can / You should) - use third person")
+                else:
+                    warnings.append("[frontmatter] 'description' uses second person - third person recommended")
 
             # Reserved words (WARN - legitimate in AI/Claude product context)
             desc_lower = desc.lower()
@@ -987,9 +1029,12 @@ def validate_frontmatter(path: Path, fm: dict) -> Tuple[List[str], List[str]]:
             if not valid:
                 errors.append(f"[frontmatter] allowed-tools: {msg}")
 
-        # Nixtla strict mode: forbid unscoped Bash
+        # Unscoped Bash check (tier-aware)
         if 'Bash' in tools:
-            errors.append("[frontmatter] allowed-tools: unscoped 'Bash' is not allowed - use scoped Bash(git:*), Bash(npm:*), etc.")
+            if tier == TIER_ENTERPRISE:
+                errors.append("[frontmatter] allowed-tools: unscoped 'Bash' is not allowed - use scoped Bash(git:*), Bash(npm:*), etc.")
+            else:
+                warnings.append("[frontmatter] allowed-tools: unscoped 'Bash' - consider scoping (Bash(git:*), Bash(npm:*), etc.)")
 
         # Info about over-permissioning
         # Count unique base tools (Bash scopes like Bash(git:*) should not inflate the tool count).
@@ -1119,15 +1164,15 @@ def validate_frontmatter(path: Path, fm: dict) -> Tuple[List[str], List[str]]:
 
     # === UNKNOWN FIELDS ===
 
-    known_fields = REQUIRED_FIELDS | OPTIONAL_FIELDS | DEPRECATED_FIELDS
+    known_fields = OPTIONAL_FIELDS | DEPRECATED_FIELDS
     unknown_fields = set(fm.keys()) - known_fields
     for field in unknown_fields:
         warnings.append(f"[frontmatter] Non-standard field: '{field}'")
 
-    return errors, warnings
+    return errors, warnings, infos
 
 
-def validate_body(path: Path, body: str) -> Tuple[List[str], List[str]]:
+def validate_body(path: Path, body: str, tier: str = TIER_STANDARD) -> Tuple[List[str], List[str]]:
     """
     Validate SKILL.md body content.
     Returns: (errors, warnings)
@@ -1138,18 +1183,18 @@ def validate_body(path: Path, body: str) -> Tuple[List[str], List[str]]:
 
     # === LENGTH CHECKS ===
 
-    # Nixtla strict mode: 500 line limit (WARN for now)
+    # Line limit (WARN in both tiers)
     if len(lines) > 500:
         warnings.append(f"[body] SKILL.md body has {len(lines)} lines (max 500). Use progressive disclosure (extract to references/)")
 
-    # Source of truth: word count check
+    # Word count check
     word_count = len(body.split())
     if word_count > 5000:
         warnings.append(f"[body] Content exceeds 5000 words ({word_count}) - may overwhelm context")
     elif word_count > 3500:
         warnings.append(f"[body] Content is lengthy ({word_count} words) - consider references/ directory")
 
-    # === REQUIRED SECTIONS (Nixtla strict mode - WARN for now) ===
+    # === SECTION CHECKS (enterprise tier only) ===
     # IMPORTANT: Detect headings outside fenced code blocks to avoid false positives from examples.
 
     def iter_non_code_lines(text: str):
@@ -1175,13 +1220,14 @@ def validate_body(path: Path, body: str) -> Tuple[List[str], List[str]]:
                 return True
         return False
 
-    for sec in REQUIRED_SECTIONS:
-        if sec == "# ":
-            if not has_markdown_h1(body):
-                warnings.append(f"[body] Recommended section missing: '{sec}' (nixtla quality standard)")
-        else:
-            if not has_heading_line(body, sec):
-                warnings.append(f"[body] Recommended section missing: '{sec}' (nixtla quality standard)")
+    if tier == TIER_ENTERPRISE:
+        for sec in ENTERPRISE_SECTIONS:
+            if sec == "# ":
+                if not has_markdown_h1(body):
+                    warnings.append(f"[body] Recommended section missing: '{sec}' (enterprise quality standard)")
+            else:
+                if not has_heading_line(body, sec):
+                    warnings.append(f"[body] Recommended section missing: '{sec}' (enterprise quality standard)")
 
     # === LEE HAN CHUNG: SECTION CONTENT MUST BE NON-EMPTY ===
 
@@ -1222,32 +1268,33 @@ def validate_body(path: Path, body: str) -> Tuple[List[str], List[str]]:
 
         return "\n".join(collected).strip()
 
-    for section, min_chars, level in [
-        ("## Instructions", 40, "WARN"),
-        ("## Output", 20, "WARN"),
-        ("## Error Handling", 20, "WARN"),
-        ("## Examples", 20, "WARN"),
-        ("## Resources", 20, "WARN"),
-    ]:
-        content = _section_body(section)
-        # Ignore empty sections that only contain code fences/whitespace
-        content_no_code = re.sub(r"```.*?```", "", content, flags=re.DOTALL).strip()
-        if len(content_no_code) < min_chars:
-            msg = f"[body] Section '{section}' looks empty/too short (Lee Han Chung standard)"
-            if level == "ERROR":
-                errors.append(msg)
-            else:
-                warnings.append(msg)
+    if tier == TIER_ENTERPRISE:
+        for section, min_chars, level in [
+            ("## Instructions", 40, "WARN"),
+            ("## Output", 20, "WARN"),
+            ("## Error Handling", 20, "WARN"),
+            ("## Examples", 20, "WARN"),
+            ("## Resources", 20, "WARN"),
+        ]:
+            content = _section_body(section)
+            # Ignore empty sections that only contain code fences/whitespace
+            content_no_code = re.sub(r"```.*?```", "", content, flags=re.DOTALL).strip()
+            if len(content_no_code) < min_chars:
+                msg = f"[body] Section '{section}' looks empty/too short (enterprise quality standard)"
+                if level == "ERROR":
+                    errors.append(msg)
+                else:
+                    warnings.append(msg)
 
-    # === LEE HAN CHUNG: INSTRUCTIONS MUST BE STEP-BY-STEP ===
+        # === LEE HAN CHUNG: INSTRUCTIONS MUST BE STEP-BY-STEP ===
 
-    instructions = _section_body("## Instructions")
-    if instructions:
-        has_numbered = bool(re.search(r"(?m)^\s*1\.\s+\S+", instructions))
-        has_step_heading = bool(re.search(r"(?mi)^\s*#{2,6}\s*step\s*\d+", instructions))
-        has_step_label = bool(re.search(r"(?mi)^\s*step\s*\d+[:\-]", instructions))
-        if not (has_numbered or has_step_heading or has_step_label):
-            warnings.append("[body] '## Instructions' should include step-by-step steps (numbered list or Step headings) (Lee Han Chung)")
+        instructions = _section_body("## Instructions")
+        if instructions:
+            has_numbered = bool(re.search(r"(?m)^\s*1\.\s+\S+", instructions))
+            has_step_heading = bool(re.search(r"(?mi)^\s*#{2,6}\s*step\s*\d+", instructions))
+            has_step_label = bool(re.search(r"(?mi)^\s*step\s*\d+[:\-]", instructions))
+            if not (has_numbered or has_step_heading or has_step_label):
+                warnings.append("[body] '## Instructions' should include step-by-step steps (numbered list or Step headings) (enterprise)")
 
     # === LEE HAN CHUNG: PURPOSE STATEMENT (1-2 sentences near top) ===
 
@@ -1310,18 +1357,19 @@ def validate_body(path: Path, body: str) -> Tuple[List[str], List[str]]:
                     purpose_location = i + 1
                     break
 
-    if not purpose_text:
-        warnings.append("[body] Missing purpose statement near the top (Lee Han Chung standard)")
-    else:
-        sc = _sentence_count(purpose_text)
-        if sc == 0:
-            warnings.append("[body] Purpose statement is empty (Lee Han Chung standard)")
-        elif sc > 2:
-            warnings.append(f"[body] Purpose statement is {sc} sentences (recommended 1-2 per Lee Han Chung)")
-        if len(purpose_text) > 400:
-            warnings.append("[body] Purpose statement is long (>400 chars) - keep it crisp (Lee Han Chung)")
-        if purpose_location is not None and purpose_location > 120:
-            warnings.append("[body] Purpose statement appears late in the document - keep it near the top (Lee Han Chung)")
+    if tier == TIER_ENTERPRISE:
+        if not purpose_text:
+            warnings.append("[body] Missing purpose statement near the top (enterprise quality standard)")
+        else:
+            sc = _sentence_count(purpose_text)
+            if sc == 0:
+                warnings.append("[body] Purpose statement is empty (enterprise quality standard)")
+            elif sc > 2:
+                warnings.append(f"[body] Purpose statement is {sc} sentences (recommended 1-2)")
+            if len(purpose_text) > 400:
+                warnings.append("[body] Purpose statement is long (>400 chars) - keep it crisp")
+            if purpose_location is not None and purpose_location > 120:
+                warnings.append("[body] Purpose statement appears late in the document - keep it near the top")
 
     # === LEE HAN CHUNG: AVOID HUGE EMBEDDED BLOCKS ===
 
@@ -1695,10 +1743,10 @@ def detect_boilerplate(skill_path: Path) -> Tuple[List[str], List[str]]:
     return errors, warnings
 
 
-def validate_skill(path: Path) -> Dict[str, Any]:
+def validate_skill(path: Path, tier: str = TIER_STANDARD) -> Dict[str, Any]:
     """
     Validate a single SKILL.md file.
-    Returns dict with errors, warnings, and metadata.
+    Returns dict with errors, warnings, infos, and metadata.
     """
     try:
         content = path.read_text(encoding='utf-8')
@@ -1712,24 +1760,26 @@ def validate_skill(path: Path) -> Dict[str, Any]:
 
     errors: List[str] = []
     warnings: List[str] = []
+    infos: List[str] = []
 
-    # Lee Han Chung: frontmatter size budget (local, per-file)
+    # Frontmatter size budget (local, per-file)
     m = RE_FRONTMATTER.match(content)
     if m:
         front_str, _body = m.groups()
         front_len = len(front_str)
         if front_len > 15_000:
-            errors.append(f"[frontmatter] Frontmatter is {front_len} chars (max 15000 per Lee Han Chung token budget)")
+            errors.append(f"[frontmatter] Frontmatter is {front_len} chars (max 15000)")
         elif front_len >= 12_000:
-            warnings.append(f"[frontmatter] Frontmatter is {front_len} chars (warn at 12000 per Lee Han Chung token budget)")
+            warnings.append(f"[frontmatter] Frontmatter is {front_len} chars (warn at 12000)")
 
     # Validate frontmatter
-    fm_errors, fm_warnings = validate_frontmatter(path, fm)
+    fm_errors, fm_warnings, fm_infos = validate_frontmatter(path, fm, tier)
     errors.extend(fm_errors)
     warnings.extend(fm_warnings)
+    infos.extend(fm_infos)
 
     # Validate body
-    body_errors, body_warnings = validate_body(path, body)
+    body_errors, body_warnings = validate_body(path, body, tier)
     errors.extend(body_errors)
     warnings.extend(body_warnings)
 
@@ -1772,6 +1822,7 @@ def validate_skill(path: Path) -> Dict[str, Any]:
     return {
         'errors': errors,
         'warnings': warnings,
+        'infos': infos,
         'word_count': estimate_word_count(content),
         'line_count': len(body.splitlines()),
         'description_length': len(description),
@@ -1786,6 +1837,16 @@ def main() -> int:
 
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument("--verbose", "-v", action="store_true", help="Print per-file OK lines and grades")
+    parser.add_argument(
+        "--standard",
+        action="store_true",
+        help="Use standard tier (Anthropic spec only, no required fields). This is the default.",
+    )
+    parser.add_argument(
+        "--enterprise",
+        action="store_true",
+        help="Use enterprise tier (Intent Solutions marketplace, 100-point rubric). Auto-enabled in CI.",
+    )
     parser.add_argument(
         "--fail-on-warn",
         action="store_true",
@@ -1837,6 +1898,20 @@ def main() -> int:
     args, _unknown = parser.parse_known_args()
     verbose = args.verbose
 
+    # Determine validation tier
+    # Priority: explicit flag > auto-detect > default (standard)
+    if args.enterprise and args.standard:
+        print("ERROR: Cannot use both --standard and --enterprise", file=sys.stderr)
+        return 1
+    elif args.enterprise:
+        tier = TIER_ENTERPRISE
+    elif args.standard:
+        tier = TIER_STANDARD
+    elif os.environ.get('CI') == 'true' or os.environ.get('GITHUB_ACTIONS') == 'true':
+        tier = TIER_ENTERPRISE  # Auto-detect CI
+    else:
+        tier = TIER_STANDARD
+
     # Single-file mode: validate just one SKILL.md
     if args.path:
         target = Path(args.path).resolve()
@@ -1847,12 +1922,12 @@ def main() -> int:
             print(f"ERROR: Expected a SKILL.md or .md file: {args.path}", file=sys.stderr)
             return 1
 
-        print(f"🔍 CLAUDE CODE PLUGIN VALIDATOR v3.0")
+        print(f"🔍 CLAUDE CODE PLUGIN VALIDATOR v4.0 ({tier} tier)")
         print(f"   Single-file mode: {target}")
         print(f"{'=' * 70}\n")
 
         if target.name == 'SKILL.md':
-            result = validate_skill(target)
+            result = validate_skill(target, tier)
             if 'fatal' in result:
                 print(f"❌ FATAL: {result['fatal']}")
                 return 1
@@ -1928,8 +2003,11 @@ def main() -> int:
         return 0
 
     if not args.json:
-        print(f"🔍 CLAUDE CODE PLUGIN VALIDATOR v3.0")
-        print(f"   Intent Solutions Standard (100-Point Grading)")
+        print(f"🔍 CLAUDE CODE PLUGIN VALIDATOR v4.0 ({tier} tier)")
+        if tier == TIER_ENTERPRISE:
+            print(f"   Intent Solutions Standard (100-Point Grading)")
+        else:
+            print(f"   Anthropic Spec Standard (no required fields)")
         print(f"{'=' * 70}\n")
         if validate_skills:
             print(f"Found {len(skills)} SKILL.md files")
@@ -1957,7 +2035,7 @@ def main() -> int:
 
     for skill in skills:
         rel = skill.relative_to(repo_root)
-        result = validate_skill(skill)
+        result = validate_skill(skill, tier)
 
         if 'fatal' in result:
             if not args.json:
@@ -2167,23 +2245,26 @@ def main() -> int:
         return 1
 
     if total_errors > 0:
-        print(f"\n❌ Validation FAILED with {total_errors} errors")
-        print("\nTo fix: Add missing enterprise fields to all skills:")
-        print("  author: \"Jeremy Longshore <jeremy@intentsolutions.io>\"")
-        print("  license: \"MIT\"")
+        print(f"\n❌ Validation FAILED with {total_errors} errors ({tier} tier)")
+        if tier == TIER_ENTERPRISE:
+            print("\nTo fix: Address errors above. Enterprise fields are now warnings, not errors.")
+            print("Use --standard for Anthropic-spec-only validation (no required fields).")
         return 1
     elif total_warnings > 0 and args.fail_on_warn:
         print(f"\n❌ Validation FAILED due to {total_warnings} warning(s) (--fail-on-warn)")
         return 1
     elif total_warnings > 0:
-        print(f"\n⚠️  Validation PASSED with {total_warnings} warnings")
+        print(f"\n⚠️  Validation PASSED with {total_warnings} warnings ({tier} tier)")
         print("(Warnings are best practices - not blocking)")
         return 0
     else:
-        print(f"\n✅ All skills fully compliant!")
-        print("   - Anthropic 2025 spec ✓")
-        print("   - Intent Solutions standard ✓")
-        print("   - 100-point grading ✓")
+        print(f"\n✅ All skills fully compliant! ({tier} tier)")
+        if tier == TIER_ENTERPRISE:
+            print("   - Anthropic 2026 spec ✓")
+            print("   - Intent Solutions standard ✓")
+            print("   - 100-point grading ✓")
+        else:
+            print("   - Anthropic 2026 spec ✓")
         return 0
 
 

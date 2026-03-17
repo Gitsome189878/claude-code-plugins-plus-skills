@@ -1,3 +1,40 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [4.19.0] - 2026-03-17
+
+### Added
+
+- **Kobiton Browser Compatibility Integration** — Cross-browser testing skill with real device cloud support (PR #350)
+- **PM AI Partner** — 12 PM-specific agent skills (technical-analyst, writer, stakeholder-update, devil-advocate, thought-partner, strategic-clarity, hypothesis-tester, builder, product-brief, meeting-prep, competitor-analyst, data-analyst) plus 6 workflow commands (PR #327)
+- **Killer Skill of the Week** section in README — Pulled from `spotlights.json`, shows current spotlight and hall of fame
+- **Nixtla sync script** — `scripts/sync-validators-to-nixtla.sh` copies validator to nixtla repo
+
+### Changed
+
+- **Validator alignment with Anthropic spec** — Two-tier validation system replacing single-tier. Standard tier (default) has no required fields per official Anthropic spec. Enterprise tier (`--enterprise`) applies Intent Solutions 100-point rubric. CI auto-detects and uses enterprise. All previously required fields (version, author, license, allowed-tools) are now warnings in enterprise, optional in standard. "Use when"/"Trigger with" phrases are INFO in standard, WARNING in enterprise. Body section checks are skipped in standard tier entirely.
+- **README stats accuracy** — Plugin count (346), skill count (1,916), contributor count (16), average grade (B, 89.9/100) now derived from actual data
+- **Reference docs** — source-of-truth.md, frontmatter-spec.md, validation-rules.md, and anthropic-comparison.md updated to reflect two-tier system
+
+### Fixed
+
+- **PR #350 review comments** — Browser-compat skill SKILL.md restructured for validator A grade, reference fixes
+
+### Statistics
+
+| Metric | v4.18.0 | v4.19.0 | Change |
+|--------|---------|---------|--------|
+| Plugins | 346 | 346 | — |
+| Skills | 1,916 | 1,916 | — |
+| Validation errors (standard) | 37 | 0 | -37 |
+| Validation errors (enterprise) | 37 | 0 | -37 |
+
+---
+
 ## [4.12.0] - 2026-01-20
 
 ### 🎯 Release Highlights

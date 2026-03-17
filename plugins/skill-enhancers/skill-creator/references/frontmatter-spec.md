@@ -6,12 +6,12 @@ Complete reference for SKILL.md frontmatter fields aligned with:
 
 ---
 
-## Required Fields (AgentSkills.io Minimum)
+## Recommended Fields (Anthropic Spec)
 
 ### name
 
 - **Type**: string
-- **Required**: Yes
+- **Required**: No (recommended)
 - **Format**: kebab-case (lowercase letters, numbers, hyphens)
 - **Length**: 1-64 characters
 - **Rules**:
@@ -35,14 +35,14 @@ name: my--skill           # Bad - consecutive hyphens
 ### description
 
 - **Type**: string (multi-line with `|` supported)
-- **Required**: Yes
+- **Required**: No (recommended, per Anthropic spec)
 - **Length**: 1-1024 characters
 - **Rules**:
-  - MUST be third person ("Generates...", "Analyzes...")
-  - MUST include what it does AND when to use it
-  - MUST include specific keywords for discovery
-  - MUST NOT use first person (I can, I will, I'm, I help)
-  - MUST NOT use second person (You can, You should, You will)
+  - SHOULD be third person ("Generates...", "Analyzes...")
+  - SHOULD include what it does AND when to use it
+  - SHOULD include specific keywords for discovery
+  - SHOULD NOT use first person (I can, I will, I'm, I help)
+  - SHOULD NOT use second person (You can, You should, You will)
   - SHOULD include action verbs (analyze, create, generate, build, debug, optimize, validate)
   - SHOULD reference slash command if user-invocable
 
@@ -286,7 +286,7 @@ The marketplace 100-point validator scores them at top-level. Do NOT nest them u
 
 ```yaml
 ---
-# Required (AgentSkills.io)
+# Recommended (Anthropic Spec)
 name: skill-name
 description: |
   What it does. Use when [scenario].

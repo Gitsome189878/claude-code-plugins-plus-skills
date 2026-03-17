@@ -10,19 +10,20 @@ Two-tier validation aligned with AgentSkills.io spec + Enterprise extensions.
 
 The baseline. Any skill published to the ecosystem must pass this.
 
-- `name` and `description` are the only required frontmatter fields
+- No required frontmatter fields per Anthropic spec. `description` is recommended.
 - Body format is flexible ("no format restrictions" - Anthropic)
 - Under 500 lines
 - No absolute paths
-- No first/second person in description
+- No first/second person in description (warning, not error)
 
 ### Enterprise Tier (Default for Our Skills)
 
-Everything in Standard, plus:
+Everything in Standard, plus scored fields (warnings, not errors):
 
-- `metadata.author` and `metadata.version` present
+- `author` and `version` present (WARNING if missing)
+- `license` present (WARNING if missing)
 - `allowed-tools` with scoped Bash
-- Recommended sections present (title, instructions, examples)
+- Recommended sections present (title, instructions, examples) — scored as WARNINGs
 - Progressive disclosure used (references/ for heavy content)
 - Error handling documented
 - `{baseDir}` used for all internal paths
@@ -32,12 +33,14 @@ Everything in Standard, plus:
 
 ## Frontmatter Validation
 
-### Required Fields (Both Tiers)
+### Recommended Fields
 
-| Field | Validation |
-|-------|-----------|
-| `name` | 1-64 chars, kebab-case `^[a-z][a-z0-9-]*[a-z0-9]$`, no consecutive hyphens, no reserved words, matches directory name |
-| `description` | 1-1024 chars, non-empty, third person only, no first/second person, specific keywords |
+No frontmatter fields are strictly required per the Anthropic spec. The following are recommended for both tiers:
+
+| Field | Validation | Level |
+|-------|-----------|-------|
+| `name` | 1-64 chars, kebab-case `^[a-z][a-z0-9-]*[a-z0-9]$`, no consecutive hyphens, no reserved words, matches directory name | INFO in standard, WARNING in enterprise |
+| `description` | 1-1024 chars, non-empty, third person only, no first/second person, specific keywords | WARNING (recommended) |
 
 ### Enterprise-Required Fields (Top-Level)
 
@@ -83,12 +86,12 @@ The marketplace 100-point validator scores them at top-level.
 - When to use it (context/triggers)
 - Specific keywords for discovery
 
-### Must Not Include (Both Tiers)
+### Should Not Include (Both Tiers — Warning)
 
-| Pattern | Regex | Example |
-|---------|-------|---------|
-| First person | `\b(I can\|I will\|I'm\|I help)\b` | "I can generate..." |
-| Second person | `\b(You can\|You should\|You will)\b` | "You can use..." |
+| Pattern | Regex | Example | Level |
+|---------|-------|---------|-------|
+| First person | `\b(I can\|I will\|I'm\|I help)\b` | "I can generate..." | Warning |
+| Second person | `\b(You can\|You should\|You will)\b` | "You can use..." | Warning |
 
 ### Recommended (Enterprise)
 

@@ -11,12 +11,12 @@ Canonical reference synthesizing all authoritative sources:
 
 ## 1. Frontmatter Fields
 
-### Required (AgentSkills.io Spec)
+### Recommended (Anthropic Spec)
 
-| Field | Type | Constraints |
-|-------|------|-------------|
-| `name` | string | 1-64 chars, lowercase alphanumeric + hyphens, no start/end/consecutive hyphens, must match directory name |
-| `description` | string | 1-1024 chars, non-empty, what it does + when to use it, third person, specific keywords for discovery |
+| Field | Type | Constraints | Notes |
+|-------|------|-------------|-------|
+| `name` | string | 1-64 chars, lowercase alphanumeric + hyphens, no start/end/consecutive hyphens, must match directory name | Recommended (not required per Anthropic spec) |
+| `description` | string | 1-1024 chars, non-empty, what it does + when to use it, third person, specific keywords for discovery | Recommended (not required per Anthropic spec) |
 
 ### Optional (AgentSkills.io Spec)
 
@@ -248,6 +248,21 @@ Skills frequently undertrigger because descriptions are too passive. Use aggress
 | Examples | Concrete input/output | At least 1, ideally 2-3 |
 | Edge cases | What to watch for | Common pitfalls |
 | Resources | Links to bundled files | `{baseDir}/` paths |
+
+### Enterprise Recommended Sections
+
+Enterprise-tier skills are scored on the presence of these 8 sections (warnings, not errors):
+
+1. Title (`# Name`)
+2. Brief description
+3. Instructions (step-by-step workflow)
+4. Examples (concrete input/output)
+5. Edge cases
+6. Error handling
+7. Resources (bundled file references)
+8. Verification/testing guidance
+
+These are scored in enterprise validation but not enforced in standard tier.
 
 ### Content Quality
 

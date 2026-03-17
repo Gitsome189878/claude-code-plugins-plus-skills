@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-Tons of Skills — Claude Code plugins marketplace (343+ plugins, 1,399+ skills). Live at https://tonsofskills.com
+Tons of Skills — Claude Code plugins marketplace (346 plugins, 1,916 skills). Live at https://tonsofskills.com
 
 **Monorepo structure:** pnpm workspaces (v9.15.9+)
 - `plugins/[category]/*` - AI instruction plugins (Markdown, ~98% of plugins)
@@ -34,10 +34,11 @@ pnpm lint                           # ESLint across all packages
 # Single MCP plugin
 cd plugins/mcp/[name]/ && pnpm build && chmod +x dist/index.js
 
-# Skills validation with 100-point grading
-python3 scripts/validate-skills-schema.py --verbose      # All content (skills + commands + agents)
-python3 scripts/validate-skills-schema.py --skills-only   # SKILL.md files only
-python3 scripts/validate-skills-schema.py --commands-only  # commands/*.md only
+# Skills validation (two-tier system)
+python3 scripts/validate-skills-schema.py --verbose                # Standard tier (default, no required fields)
+python3 scripts/validate-skills-schema.py --enterprise --verbose   # Enterprise tier (100-point grading)
+python3 scripts/validate-skills-schema.py --skills-only            # SKILL.md files only
+python3 scripts/validate-skills-schema.py --commands-only          # commands/*.md only
 
 # CLI package
 cd packages/cli && pnpm test -- --grep "pattern"  # Run single test

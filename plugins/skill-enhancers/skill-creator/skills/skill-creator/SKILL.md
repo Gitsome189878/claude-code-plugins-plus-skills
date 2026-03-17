@@ -164,35 +164,35 @@ tags: [devops, ci]                  # Discovery tags
 
 **Description writing — maximize discoverability scoring:**
 
-Descriptions determine activation AND marketplace grade. Include these patterns for maximum points:
+Descriptions determine activation AND marketplace grade. "Use when"/"Trigger with" scoring is enterprise-tier only (marketplace grading). Standard tier does not penalize for missing these patterns. However, they remain best practices for discoverability regardless of tier.
 
 ```yaml
-# Good - scores +6 pts on marketplace grading
+# Good - scores +6 pts on enterprise marketplace grading
 description: |
   Analyze Python code for security vulnerabilities. Use when reviewing code
   before deployment. Trigger with "/security-scan" or "scan for vulnerabilities".
 
-# Bad - loses 6 discoverability points
+# Acceptable at standard tier, but loses 6 pts at enterprise tier
 description: |
   Analyzes code for security issues.
 ```
 
-Pattern: "Use when [scenario]" (+3 pts) + "Trigger with [phrases]" (+3 pts) + "Make sure to use whenever..." for aggressive claiming.
+Pattern (enterprise): "Use when [scenario]" (+3 pts) + "Trigger with [phrases]" (+3 pts) + "Make sure to use whenever..." for aggressive claiming.
 
 **Token budget awareness:** All installed skill descriptions load at startup (~100 tokens each). The total skill list is capped at ~15,000 characters (`SLASH_COMMAND_TOOL_CHAR_BUDGET`). Keep descriptions impactful but efficient.
 
-**Body content guidelines — marketplace-scored sections:**
+**Body content guidelines — section recommendations:**
 
-Include these sections for maximum marketplace points:
+Anthropic's spec places no format restrictions on body content. The sections below are enterprise-tier quality recommendations scored by the Intent Solutions marketplace rubric. At standard tier, these are not required but are still good practice:
 ```
-## Overview       (>50 chars content: +4 pts)
-## Prerequisites  (+2 pts)
-## Instructions   (numbered steps: +3 pts)
-## Output         (+2 pts)
-## Error Handling (+2 pts)
-## Examples       (+2 pts)
-## Resources      (+1 pt)
-5+ sections total: +2 pts bonus
+## Overview       (>50 chars content: +4 pts enterprise)
+## Prerequisites  (+2 pts enterprise)
+## Instructions   (numbered steps: +3 pts enterprise)
+## Output         (+2 pts enterprise)
+## Error Handling (+2 pts enterprise)
+## Examples       (+2 pts enterprise)
+## Resources      (+1 pt enterprise)
+5+ sections total: +2 pts bonus (enterprise)
 ```
 
 Additional guidelines:
@@ -239,7 +239,7 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/validate-skill.py {skill-dir}/SKILL.md
 python3 ${CLAUDE_SKILL_DIR}/scripts/validate-skill.py --grade {skill-dir}/SKILL.md
 ```
 
-Enterprise tier is default. Use `--standard` for AgentSkills.io minimum only.
+Standard tier is the default (no required fields, broad compatibility). Use `--enterprise` for full 100-point marketplace grading.
 
 **Validation checks:**
 - Frontmatter: required fields, types, constraints

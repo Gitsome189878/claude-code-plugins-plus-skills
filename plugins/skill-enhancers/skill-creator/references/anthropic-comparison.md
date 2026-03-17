@@ -12,14 +12,14 @@ Comparison of our skill-creator implementation against:
 
 | Issue | Our Requirement | Anthropic Standard | Resolution |
 |-------|----------------|-------------------|------------|
-| `version` as required frontmatter | Top-level required field | Not in spec; use `metadata.version` | Moved to `metadata` (optional) |
-| `author` as required frontmatter | Top-level required field | Not in spec; use `metadata.author` | Moved to `metadata` (optional) |
-| `license` as required | Required in Enterprise tier | Optional in AgentSkills.io spec | Optional (Enterprise recommends) |
+| `version` as required frontmatter | Top-level required field | Not in spec; use `metadata.version` | WARNING in enterprise, optional in standard |
+| `author` as required frontmatter | Top-level required field | Not in spec; use `metadata.author` | WARNING in enterprise, optional in standard |
+| `license` as required | Required in Enterprise tier | Optional in AgentSkills.io spec | WARNING in enterprise, optional in standard |
 | `tags` field | Listed as optional | Not in official spec at all | Removed from schema; use `metadata.tags` |
-| Mandatory "Use when" phrase | Error if missing | Natural language, no exact phrase | Recommend but don't enforce exact wording |
-| Mandatory "Trigger with" phrase | Error if missing | Not an Anthropic requirement | Removed as requirement |
-| 8 mandatory body sections | Error if any missing | "No format restrictions" | Recommended sections, not mandatory |
-| Unscoped Bash as error | Hard error | Experimental feature (allowed-tools) | Warning in Standard tier, error in Enterprise |
+| Mandatory "Use when" phrase | Error if missing | Natural language, no exact phrase | INFO in standard, WARNING in enterprise |
+| Mandatory "Trigger with" phrase | Error if missing | Not an Anthropic requirement | INFO in standard, WARNING in enterprise |
+| 8 mandatory body sections | Error if any missing | "No format restrictions" | Skipped in standard, WARNING in enterprise |
+| Unscoped Bash as error | Hard error | Experimental feature (allowed-tools) | WARNING in standard, ERROR in enterprise |
 | Hardcoded model ID | `claude-opus-4-5-20251101` | Use `inherit` or omit | Default to `inherit` |
 
 ---
