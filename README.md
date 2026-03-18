@@ -305,6 +305,7 @@ Community contributors make this marketplace better. Newest first.
 
 - [AgentSkills.io](https://agentskills.io) — Open standard for skill compatibility fields
 - [Numman Ali's Skills](https://github.com/numman-ali/n-skills) — Externally-synced community skills
+- [Prism Scanner](https://github.com/aidongise-cell/prism-scanner) — Open-source security scanner for agent skills, plugins, and MCP servers (39+ rules, AST taint tracking, A-F grading)
 
 ---
 
