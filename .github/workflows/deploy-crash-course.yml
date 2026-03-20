@@ -1,0 +1,46 @@
+name: Deploy Crash Course App to GitHub Pages
+
+on:
+  push:
+    branches: [claude/crash-course-learning-app-Nyogo, main]
+    paths:
+      - 'apps/crash-course-web/**'
+      - '.github/workflows/deploy-crash-course.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}learn/
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare site directory
+        run: |
+          mkdir -p _site/learn
+          cp apps/crash-course-web/index.html _site/learn/
+          cp apps/crash-course-web/style.css _site/learn/
+          cp apps/crash-course-web/app.js _site/learn/
+          # Root redirect to /learn/
+          echo '<meta http-equiv="refresh" content="0; url=learn/">' > _site/index.html
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./_site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
