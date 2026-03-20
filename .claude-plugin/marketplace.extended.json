@@ -9288,6 +9288,35 @@
       "external_sync": true,
       "mcpTools": 6,
       "keywords": ["mcp", "pr-analysis", "intent-drift", "code-review", "agent-protocol"]
+    },
+    {
+      "name": "crash-course-learning",
+      "source": "./plugins/productivity/crash-course-learning",
+      "description": "Turn any question or topic into a structured crash course or quick answer. Researches online sources, organises findings into clear numbered modules, and delivers clean readable learning content.",
+      "version": "1.0.0",
+      "category": "productivity",
+      "keywords": ["learning", "education", "research", "crash-course", "study", "modules", "knowledge", "teach"],
+      "author": {
+        "name": "Gitsome189878",
+        "email": "dev@example.com",
+        "url": "https://github.com/Gitsome189878"
+      },
+      "repository": "https://github.com/Gitsome189878/claude-code-plugins-plus-skills",
+      "license": "MIT",
+      "featured": false,
+      "pricing": "free",
+      "components": {
+        "skills": 1,
+        "commands": 2,
+        "agents": 2,
+        "total": 5
+      },
+      "verification": {
+        "score": 0,
+        "grade": "N/A",
+        "badge": "none",
+        "lastValidated": "2026-03-20T00:00:00.000Z"
+      }
     }
   ]
 }

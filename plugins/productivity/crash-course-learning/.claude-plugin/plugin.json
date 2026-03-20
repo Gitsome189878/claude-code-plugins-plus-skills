@@ -1,0 +1,12 @@
+{
+  "name": "crash-course-learning",
+  "version": "1.0.0",
+  "description": "Turn any question or topic into a structured crash course or quick answer. Researches the web, organises findings into modules, and delivers clean readable learning content.",
+  "author": {
+    "name": "Gitsome189878",
+    "email": "dev@example.com"
+  },
+  "repository": "https://github.com/Gitsome189878/claude-code-plugins-plus-skills",
+  "license": "MIT",
+  "keywords": ["learning", "education", "research", "crash-course", "study", "modules"]
+}
