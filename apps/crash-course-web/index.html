@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Learn Anything — Crash Course</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Settings panel -->
+  <div id="settings-overlay" class="settings-overlay hidden">
+    <div class="settings-panel">
+      <h2>Settings</h2>
+      <label for="api-key-input">Claude API Key</label>
+      <p class="settings-hint">Your key is stored only in this browser. Never sent anywhere except directly to Anthropic.</p>
+      <input type="password" id="api-key-input" placeholder="sk-ant-..." />
+      <div class="settings-actions">
+        <button id="save-settings-btn" class="btn-primary">Save</button>
+        <button id="cancel-settings-btn" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">📚</span>
+        <span class="logo-text">Learn Anything</span>
+      </div>
+      <button id="settings-btn" class="settings-icon-btn" title="Settings" aria-label="Open settings">⚙️</button>
+    </div>
+  </header>
+
+  <!-- Main content -->
+  <main>
+
+    <!-- Home screen -->
+    <section id="home-screen" class="screen active">
+      <div class="hero">
+        <h1>What would you like to learn today?</h1>
+        <p class="hero-subtitle">Type a question or topic — I'll find everything you need to know and present it clearly.</p>
+
+        <div class="search-box">
+          <textarea
+            id="main-query"
+            placeholder="e.g. Why does my knee hurt? / How do vaccines work? / What is inflation?"
+            rows="3"
+            aria-label="Enter your question or topic"
+          ></textarea>
+        </div>
+
+        <div class="mode-buttons">
+          <button id="quick-answer-btn" class="mode-btn mode-btn-minor">
+            <span class="mode-icon">💬</span>
+            <span class="mode-label">Quick Answer</span>
+            <span class="mode-desc">Get a clear, compiled answer to a specific question — with sources</span>
+          </button>
+          <button id="crash-course-btn" class="mode-btn mode-btn-course">
+            <span class="mode-icon">🎓</span>
+            <span class="mode-label">Full Crash Course</span>
+            <span class="mode-desc">Learn everything about a topic — organised into easy modules</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mode selector (Quick Answer sub-modes) -->
+    <section id="mode-selector-screen" class="screen hidden">
+      <div class="back-bar">
+        <button class="back-btn" data-target="home-screen">← Back</button>
+      </div>
+      <div class="mode-selector-content">
+        <h2>How would you like your answer?</h2>
+        <p class="mode-selector-topic" id="mode-selector-topic-display"></p>
+
+        <div class="sub-mode-buttons">
+          <button id="quick-brief-btn" class="sub-mode-btn">
+            <span class="sub-mode-icon">📋</span>
+            <h3>Quick Brief</h3>
+            <p>I'll search the web and compile the best information into a clear summary with sources. Ready in seconds.</p>
+          </button>
+          <button id="interactive-btn" class="sub-mode-btn">
+            <span class="sub-mode-icon">💬</span>
+            <h3>Interactive</h3>
+            <p>I'll ask you a few questions to understand your specific situation, then give you a targeted answer.</p>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results screen -->
+    <section id="results-screen" class="screen hidden">
+      <div class="results-header">
+        <button class="back-btn" data-target="home-screen">← New question</button>
+        <div id="results-title-area">
+          <h2 id="results-title"></h2>
+          <span id="results-mode-badge" class="mode-badge"></span>
+        </div>
+        <div class="results-actions">
+          <input type="text" id="module-filter" placeholder="Filter modules..." class="module-filter hidden" aria-label="Filter modules" />
+          <button id="export-btn" class="btn-secondary small">Export PDF</button>
+        </div>
+      </div>
+
+      <div class="results-layout">
+        <!-- Sidebar (for crash course) -->
+        <nav id="module-nav" class="module-nav hidden" aria-label="Course modules">
+          <h3>Modules</h3>
+          <ol id="module-nav-list"></ol>
+        </nav>
+
+        <!-- Content area -->
+        <div class="results-content" id="results-content">
+          <!-- Content injected here -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="loading-inner">
+      <div class="spinner"></div>
+      <p id="loading-message">Researching your question...</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

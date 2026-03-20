@@ -6800,6 +6800,30 @@
         "code-review",
         "agent-protocol"
       ]
+    },
+    {
+      "name": "crash-course-learning",
+      "source": "./plugins/productivity/crash-course-learning",
+      "description": "Turn any question or topic into a structured crash course or quick answer. Researches online sources, organises findings into clear numbered modules, and delivers clean readable learning content.",
+      "version": "1.0.0",
+      "category": "productivity",
+      "keywords": [
+        "learning",
+        "education",
+        "research",
+        "crash-course",
+        "study",
+        "modules",
+        "knowledge",
+        "teach"
+      ],
+      "author": {
+        "name": "Gitsome189878",
+        "email": "dev@example.com",
+        "url": "https://github.com/Gitsome189878"
+      },
+      "repository": "https://github.com/Gitsome189878/claude-code-plugins-plus-skills",
+      "license": "MIT"
     }
   ]
 }
