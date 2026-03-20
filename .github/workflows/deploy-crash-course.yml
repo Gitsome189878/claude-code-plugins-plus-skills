@@ -14,7 +14,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: "crash-course-pages"
   cancel-in-progress: false
 
 jobs:
@@ -37,7 +37,7 @@ jobs:
           echo '<meta http-equiv="refresh" content="0; url=learn/">' > _site/index.html
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: ./_site
 
